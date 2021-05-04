@@ -1,0 +1,356 @@
+#include<SFML/Graphics.hpp>
+#include<iostream>
+#include<ctime>
+using namespace std;
+bool Collide_Border(float x_snake, float y_snake)
+{
+	
+	if (x_snake == 160 && y_snake > 0 && y_snake < 540)
+	{
+		return true;
+	}
+	if (y_snake == 160 && x_snake > 0 && x_snake < 540)
+	{
+		return true;
+	}
+	if (y_snake == 530 && x_snake > 0 && x_snake < 540)
+	{
+		return true;
+	}
+	if (x_snake == 530 && y_snake > 0 && y_snake < 540)
+	{
+		return true;
+	}
+	return false;
+}
+bool Collide_fruit(float x_snake, float y_snake, float& x_fruit, float& y_fruit)
+{
+	if (x_snake == x_fruit && y_snake == y_fruit )
+	{
+		return true;
+	}
+	return false;
+}
+class Node
+{
+public:
+	Node()
+	{
+		x = 0;
+		y = 0;
+		next = nullptr;
+	}
+	float x;
+	float y;
+	Node* next;
+};
+class Snake
+{
+	Node* head;
+	Node* tail;
+public:
+	Snake()
+	{
+		Node* ptr = new Node();
+		ptr->x = 400;
+		ptr->y = 400;
+		ptr->next = nullptr;
+
+		head = ptr;
+		tail = head;
+	}
+	Node* gethead()
+	{
+		return head;
+	}
+	Node* getTail()
+	{
+		return tail;
+	}
+	void insert()//inserting at tail
+	{
+			Node* node = new Node();
+			node->x = tail->x + 10;
+			//node->y = tail->y - 10;
+			tail->next = node;
+			tail = node;			
+			
+	}
+	
+	//~Snake()
+	//{
+	//	while (head != nullptr)
+	//	{
+	//		Node* ptr = head;
+	//		head = ptr->next;
+	//		ptr->next = nullptr;
+	//		delete ptr;
+	//	}
+	//	head = nullptr;
+	//	tail = nullptr;
+	//	delete head;
+	//	delete tail;
+	//}
+};
+void movement(Node *&ptr, int &keypress_flag, sf::RectangleShape snk, char& direction)
+{
+		snk.setPosition(ptr->x, ptr->y);
+		snk.setFillColor(sf::Color::Green);
+		//int keypress_flag = 0;
+		if (keypress_flag == 0)
+		{
+			direction = 'a';
+			ptr->x -= 10;
+			snk.move(-10, 0);
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W) || (keypress_flag >0 && keypress_flag<2))
+		{
+			keypress_flag = 1;
+			if (keypress_flag == 1)
+			{
+				direction = 'w';
+				ptr->y -= 10;
+				snk.move(0, -10);
+			}
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A) || (keypress_flag >1 && keypress_flag<3))
+		{
+			keypress_flag = 2;
+			if (keypress_flag == 2)
+			{
+				direction = 'a';
+				ptr->x -= 10;
+				snk.move(-10, 0);
+			}
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S) || (keypress_flag > 2 && keypress_flag < 4))
+		{
+			keypress_flag = 3;
+			if (keypress_flag == 3)
+			{
+				direction = 's';
+				ptr->y += 10;
+				snk.move(0, 10);
+			}
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D) || (keypress_flag > 3 && keypress_flag < 5))
+		{
+			keypress_flag = 4;
+			if (keypress_flag == 4)
+			{
+				direction = 'd';
+				ptr->x += 10;
+				snk.move(10, 0);
+			}
+		}
+}
+int CheckCollision(Node* ptr, sf::Vector2f fruitposition) //0 no collision, 1 fruit collision, 2 border collision
+{
+	int result = 0;
+	if (Collide_fruit(ptr->x, ptr->y, fruitposition.x, fruitposition.y) == true)
+	{
+		result = 1;
+	}
+	if (Collide_Border(ptr->x, ptr->y) == true)
+	{
+		result = 2;
+	}
+	return result;
+}
+void Fruit_Placement(sf::RectangleShape& fruit, sf::Vector2f& fruitposition)
+{
+	int lastdigit = 0;
+	srand(time(0));
+	int x = fruitposition.x;
+	x = rand() % (530 - 160 + 1);
+	x = x + 160;
+	lastdigit = x % 10;
+	if (lastdigit != 0)
+	{
+		x = x + (10 - lastdigit);
+	}
+	//srand(time(0));
+	int y = fruitposition.y;
+	y = rand() % (530 - 160 + 1);
+	y = y + 160;
+	lastdigit = y % 10;
+	if (lastdigit != 0)
+	{
+		y = y + (10 - lastdigit);
+	}
+	cout << "x: " << fruitposition.x << "   " << "y: " << fruitposition.y << endl;
+	fruit.setPosition(x, y);
+}
+void drawSnake(Snake& snake, sf::RenderWindow &window, int& keypress_flag,char& direction, sf::Text& p_score, int& score, string& player_score, string& score_is, string& my_score, int& game_flag, sf::RectangleShape& fruit, int& xf, int& yf)
+{
+	Node* ptr = snake.gethead();
+	while (ptr != nullptr && game_flag == 0)
+	{
+		sf::RectangleShape snk(sf::Vector2f(10.0f, 10.0f));
+		snk.setFillColor(sf::Color::Green);
+		movement(ptr, keypress_flag, snk, direction);
+		snk.setPosition(ptr->x, ptr->y);
+		window.draw(snk);
+		sf::Vector2f fruitposition = fruit.getPosition();
+		if (CheckCollision(ptr, fruitposition) == 1)
+		{
+			score++;
+			player_score = to_string(score);
+			my_score = score_is + player_score;
+			p_score.setString(my_score);
+			//snake.insert();
+			Fruit_Placement(fruit, fruitposition);
+			cout << endl << "hit fruit" << endl;
+		}
+		if (CheckCollision(ptr, fruitposition) == 2)
+		{
+			cout << "game over" << endl;
+			game_flag = 1;
+		}
+		ptr = ptr->next;
+	}
+}
+int main()
+{
+	sf::RenderWindow window(sf::VideoMode(700, 700), "BOARD",sf::Style::Close | sf::Style::Resize);
+	window.setFramerateLimit(15);
+	
+	char direction_buffer = 'n'; 
+	
+	//DESIGN SHESIGN
+	sf::Sprite title;
+	sf::Texture title_texture;
+	title_texture.loadFromFile("title.jpg");
+	title.setTexture(title_texture);
+	title.setPosition(280, 0);
+	
+	int score = 0;
+	string player_score = to_string(score);
+	string score_is = "Score: ";
+	string my_score = score_is + player_score;
+
+	sf::Font font;
+	font.loadFromFile("myfont.ttf");
+	sf::Text p_score;
+	p_score.setFont(font);
+	p_score.setString(my_score);
+	p_score.setFillColor(sf::Color::Green);
+	p_score.setPosition(10, 200);
+	p_score.setCharacterSize(15);
+
+	sf::Text player_name;
+	player_name.setFont(font);
+	player_name.setString("player: Dua");
+	player_name.setFillColor(sf::Color::Green);
+	player_name.setPosition(10, 150);
+	player_name.setCharacterSize(15);
+
+
+	//design end
+
+
+	//sf::RectangleShape snake(sf::Vector2f(10.0f, 10.0f));
+	sf::RectangleShape fruit(sf::Vector2f(10.0f,10.0f));
+	sf::RectangleShape border(sf::Vector2f(10.0f, 10.0f));
+
+	Snake snake;
+	//snake.insert();
+
+
+
+	int x_fruit = 200;
+	int y_fruit = 200;
+
+	
+	float x_border = 150;
+	float y_border = 150;
+
+
+
+	fruit.setPosition(x_fruit,y_fruit);
+	//snake.setPosition(x_snake, y_snake);
+
+	border.setFillColor(sf::Color::Cyan);
+	//snake.setFillColor(sf::Color::Green);
+	fruit.setFillColor(sf::Color::Red);
+	
+
+	int game_flag=0;
+	int keypress_flag = 0;
+	while (window.isOpen() && game_flag==0)
+	{
+		
+		sf::Event evnt;
+		while (window.pollEvent(evnt))
+		{
+			switch (evnt.type)
+			{
+			case sf::Event::Closed:
+				window.close();
+				break;
+				
+			case sf::Event::Resized:
+				cout << "new width: " << evnt.size.width << "New height: " << evnt.size.height << endl;
+				break;
+
+			case sf::Event::TextEntered: //to take input from user on console
+				if (evnt.text.unicode < 128)
+				{
+					cout << (char)evnt.text.unicode;
+				}
+			}
+		}
+
+
+		
+		//sf::RectangleShape snk(sf::Vector2f(10.0f, 10.0f));
+		//movement(snake, keypress_flag,snk);
+		
+		window.clear();
+		while (x_border < 540)
+		{
+			border.setPosition(x_border, y_border);
+			window.draw(border);
+			x_border += 10;
+		} 
+
+		x_border = 540;
+		while (y_border < 540)
+		{
+			border.setPosition(x_border, y_border);
+			window.draw(border);
+			y_border += 10;
+
+		}
+		y_border = 540;
+		while (x_border > 150)
+		{
+			border.setPosition(x_border, y_border);
+			window.draw(border);
+			x_border -= 10;
+		}
+		while (y_border > 150)
+		{
+			border.setPosition(x_border, y_border);
+			window.draw(border);
+			y_border -= 10;
+		}
+
+		
+
+
+		window.draw(player_name);
+		window.draw(title);
+		drawSnake(snake, window, keypress_flag, direction_buffer , p_score, score, player_score, score_is, my_score, game_flag, fruit, x_fruit, y_fruit);
+		//window.draw(snake);
+		window.draw(fruit);
+		window.draw(p_score);
+		//window.draw(border);
+		window.display();
+		
+
+	}
+	
+	
+	system("pause");
+}
